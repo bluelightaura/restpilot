@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Demo Users API
+  version: 1.0.0
+  description: A tiny API used by the RestPilot examples and tests.
+servers:
+  - url: http://localhost:8000
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health probe
+      tags: [system]
+      responses:
+        "200":
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      summary: List users
+      tags: [users]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: A page of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      summary: Create user
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "201":
+          description: The created user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "422":
+          description: Validation error.
+  /api/v1/users/{user_id}:
+    get:
+      operationId: getUser
+      summary: Get user
+      tags: [users]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The requested user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Unknown user.
+    delete:
+      operationId: deleteUser
+      summary: Delete user
+      tags: [users]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: The user was deleted.
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Alice
+        email:
+          type: string
+          example: alice@example.com
+    UserCreate:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          example: Alice
+        email:
+          type: string
+          example: alice@example.com
