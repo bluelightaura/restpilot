@@ -18,6 +18,7 @@ from typing import Any, TypeVar
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from restpilot import __version__
 from restpilot.api.client import ApiClient
@@ -31,6 +32,7 @@ from restpilot.api.response_formatter import render_response
 from restpilot.config import LOCAL_CONFIG_NAME, ConfigPaths
 from restpilot.environments.manager import EnvironmentManager
 from restpilot.exceptions import ConfigurationError, RestPilotError, TestGenerationError
+from restpilot.generators.coverage import CoverageReport, build_report
 from restpilot.generators.pytest_generator import ensure_conftest, render_test, write_test
 from restpilot.models import EnvironmentConfig, HttpMethod
 from restpilot.openapi.loader import load_spec
@@ -328,6 +330,83 @@ def endpoints(
         table.add_row(endpoint.method.value, endpoint.path, endpoint.summary)
     console.print(table)
     console.print(f"[dim]{len(selected)} of {len(document.endpoints)} endpoints[/dim]")
+
+
+@app.command("coverage")
+@handle_errors
+def api_coverage(
+    path: Path | None = typer.Option(
+        None, "--path", help="Directory holding the tests. Defaults to ./generated_tests."
+    ),
+    missing: bool = typer.Option(False, "--missing", help="Only list endpoints without a test."),
+    fail_under: float | None = typer.Option(
+        None, "--fail-under", min=0, max=100, help="Exit with code 1 below this percentage."
+    ),
+    method: str | None = typer.Option(None, "--method", "-m", help="Filter by HTTP method."),
+    search: str | None = typer.Option(None, "--search", "-s", help="Filter by path or summary."),
+) -> None:
+    """Show which endpoints of the imported specification already have tests."""
+    paths = _paths()
+    document = load_document(paths.spec_path)
+    selected = filter_endpoints(
+        document.endpoints,
+        method=_parse_method(method) if method else None,
+        search=search,
+    )
+    if not selected:
+        console.print("No endpoint matches the given filters.")
+        return
+    directory = (path or paths.generated_tests_dir).expanduser()
+    report = build_report(document, directory, selected)
+    _print_coverage(report, missing_only=missing)
+
+    if fail_under is not None and report.percentage < fail_under:
+        error_console.print(
+            f"[bold red]Error:[/bold red] endpoint coverage {report.percentage:.0f}% "
+            f"is below the required {fail_under:g}%."
+        )
+        raise typer.Exit(code=1)
+
+
+def _display_path(path: Path) -> str:
+    """Shorten a path relative to the working directory when possible."""
+    try:
+        return str(path.relative_to(Path.cwd()))
+    except ValueError:
+        return str(path)
+
+
+def _print_coverage(report: CoverageReport, *, missing_only: bool) -> None:
+    entries = report.missing if missing_only else report.entries
+    if entries:
+        title = f"Endpoint coverage in {_display_path(report.directory)}"
+        table = Table(title=title, title_justify="left")
+        table.add_column("METHOD", style="bold cyan", no_wrap=True)
+        table.add_column("PATH", no_wrap=True)
+        table.add_column("STATUS", no_wrap=True)
+        table.add_column("TEST", overflow="fold")
+        for entry in entries:
+            status = (
+                Text("covered", style="green")
+                if entry.is_covered
+                else Text("missing", style="yellow")
+            )
+            test_file = (
+                str(entry.test_file.relative_to(report.directory))
+                if entry.test_file is not None and entry.test_file.is_relative_to(report.directory)
+                else str(entry.test_file or "-")
+            )
+            table.add_row(entry.endpoint.method.value, entry.endpoint.path, status, test_file)
+        console.print(table)
+    elif missing_only:
+        console.print("Every selected endpoint has a test.")
+
+    console.print(
+        f"[dim]{len(report.covered)} of {len(report.entries)} endpoints covered "
+        f"({report.percentage:.0f}%)[/dim]"
+    )
+    if report.missing:
+        console.print("[dim]Generate the missing ones: restpilot generate-all[/dim]")
 
 
 def _base_url_for_generation(manager: EnvironmentManager) -> str:

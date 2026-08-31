@@ -57,6 +57,8 @@ It is a client for *other people's* APIs. It has no backend, no database and no 
 * **pytest generation** — one readable module per endpoint, with the status code taken from the
   specification, an example request body when the schema provides one, and a `conftest.py`
   exposing an `api_client` fixture. Existing files are never overwritten without `--force`.
+* **Endpoint coverage** — `restpilot coverage` compares the specification with the tests you
+  already have and names the endpoints nobody has covered yet, with a `--fail-under` gate for CI.
 * **Exit codes that mean something** — `--expected-status` and `restpilot test` propagate failures,
   so RestPilot can be used inside CI pipelines and shell scripts.
 
@@ -71,7 +73,7 @@ cli.py                    argument parsing, rendering, exit codes
 ├── environments/         environment CRUD, storage, ${VAR} resolution
 ├── api/                  request building, HTTP execution, response formatting
 ├── openapi/              loading (file or URL) and normalization into models
-├── generators/           Jinja2 rendering of pytest modules
+├── generators/           Jinja2 rendering of pytest modules, coverage matching
 ├── models.py             Pydantic models shared by every layer
 ├── exceptions.py         one error type per failure mode
 └── utils/                secret masking and safe filesystem access
@@ -119,6 +121,9 @@ restpilot import-api examples/openapi.yaml
 restpilot endpoints
 restpilot generate-all
 restpilot test
+
+# 5. Check what is still untested
+restpilot coverage --missing
 ```
 
 ## Commands
@@ -214,6 +219,33 @@ restpilot test --path generated_tests
 
 `restpilot test` runs pytest through `subprocess` with an argument list (never `shell=True`) and
 returns pytest's own exit code.
+
+### Endpoint coverage
+
+```bash
+restpilot coverage
+restpilot coverage --missing
+restpilot coverage --method GET --search users
+restpilot coverage --path api_tests --fail-under 80
+```
+
+```text
+Endpoint coverage in generated_tests
+METHOD   PATH                     STATUS   TEST
+GET      /api/v1/users            missing  -
+POST     /api/v1/users            covered  test_create_user.py
+DELETE   /api/v1/users/{user_id}  missing  -
+GET      /api/v1/users/{user_id}  missing  -
+GET      /health                  covered  test_health_check.py
+
+2 of 5 endpoints covered (40%)
+```
+
+A test counts as covering an endpoint when it carries the marker RestPilot writes into the module
+docstring — so renaming or editing a generated file keeps it recognized — or when it defines a
+test function named the way RestPilot would name it, which lets hand-written tests count too.
+`--fail-under` exits with code 1 below the given percentage, which makes the command usable as a
+contract-coverage gate in a pipeline.
 
 ## Configuration
 
@@ -316,6 +348,7 @@ restpilot/
 │   │   └── parser.py              normalization into models
 │   ├── generators/
 │   │   ├── pytest_generator.py    rendering and safe file writing
+│   │   ├── coverage.py            specification vs. existing tests
 │   │   └── templates/             Jinja2 templates
 │   └── utils/
 │       ├── secrets.py             ${VAR} expansion and masking
@@ -334,7 +367,7 @@ restpilot/
 ## Running the checks
 
 ```bash
-pytest                    # 237 tests, coverage gate at 90%
+pytest                    # 258 tests, coverage gate at 90%
 ruff check .
 ruff format --check .
 mypy

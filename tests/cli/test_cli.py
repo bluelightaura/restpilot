@@ -384,3 +384,69 @@ def test_test_command_accepts_an_explicit_path(runner, project_dir, monkeypatch)
     )
     result = runner.invoke(app, ["test", "--path", str(target)])
     assert result.exit_code == 0
+
+
+def test_coverage_reports_generated_tests(runner, imported_spec, project_dir):
+    runner.invoke(app, ["generate-test", "GET", "/health"])
+    result = runner.invoke(app, ["coverage"])
+    assert result.exit_code == 0, output_of(result)
+    assert "covered" in result.stdout and "missing" in result.stdout
+    assert "test_health_check.py" in result.stdout
+    assert "1 of 5 endpoints covered (20%)" in result.stdout
+    assert "restpilot generate-all" in result.stdout
+
+
+def test_coverage_lists_only_the_gaps(runner, imported_spec):
+    runner.invoke(app, ["generate-test", "GET", "/health"])
+    result = runner.invoke(app, ["coverage", "--missing"])
+    assert result.exit_code == 0, output_of(result)
+    assert "/health" not in result.stdout
+    assert "/api/v1/users" in result.stdout
+
+
+def test_coverage_confirms_a_complete_suite(runner, imported_spec):
+    runner.invoke(app, ["generate-all"])
+    result = runner.invoke(app, ["coverage", "--missing"])
+    assert result.exit_code == 0, output_of(result)
+    assert "Every selected endpoint has a test." in result.stdout
+    assert "5 of 5 endpoints covered (100%)" in result.stdout
+
+
+def test_coverage_gate_fails_below_the_threshold(runner, imported_spec):
+    runner.invoke(app, ["generate-test", "GET", "/health"])
+    result = runner.invoke(app, ["coverage", "--fail-under", "50"])
+    assert result.exit_code == 1
+    assert "coverage 20% is below the required 50%" in output_of(result)
+
+
+def test_coverage_gate_passes_when_the_suite_is_complete(runner, imported_spec):
+    runner.invoke(app, ["generate-all"])
+    assert runner.invoke(app, ["coverage", "--fail-under", "100"]).exit_code == 0
+
+
+def test_coverage_accepts_filters_and_an_explicit_path(runner, imported_spec, project_dir):
+    target = project_dir / "api_tests"
+    runner.invoke(app, ["generate-all", "--output-dir", str(target)])
+    result = runner.invoke(
+        app, ["coverage", "--path", str(target), "--method", "GET", "--search", "health"]
+    )
+    assert result.exit_code == 0, output_of(result)
+    assert "1 of 1 endpoints covered (100%)" in result.stdout
+
+
+def test_coverage_reports_an_empty_selection(runner, imported_spec):
+    result = runner.invoke(app, ["coverage", "--search", "nothing-matches"])
+    assert result.exit_code == 0
+    assert "No endpoint matches" in result.stdout
+
+
+def test_coverage_requires_an_import(runner):
+    result = runner.invoke(app, ["coverage"])
+    assert result.exit_code == 1
+    assert "no OpenAPI specification has been imported yet." in output_of(result)
+
+
+def test_coverage_shortens_the_directory_in_the_title(runner, imported_spec):
+    runner.invoke(app, ["generate-all"])
+    result = runner.invoke(app, ["coverage"])
+    assert "Endpoint coverage in generated_tests" in result.stdout
