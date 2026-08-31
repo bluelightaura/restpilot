@@ -422,6 +422,9 @@ Not implemented in the first version, in rough order of usefulness:
 * Configuration files are written atomically with `0600` permissions.
 * `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key`, `Api-Key` and
   `X-Auth-Token` are masked in every terminal output, including `--verbose`.
+* Response **bodies** are printed as received: masking covers headers, so an API that echoes your
+  credentials back in the payload (`httpbin.org/headers` does exactly that) will show them on
+  screen. Treat body output as untrusted content.
 * `.env` is git-ignored, together with `.restpilot.yaml` and `generated_tests/`.
 * `restpilot test` executes pytest with an argument list and never with `shell=True`.
 * Generated files are written through a path-traversal guard that refuses absolute paths and `..`.
