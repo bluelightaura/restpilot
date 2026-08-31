@@ -1,14 +1,20 @@
-# RestPilot
+<p align="center">
+  <img src="assets/restpilot-banner.png" alt="RestPilot — a REST API client for the terminal" width="820">
+</p>
 
-![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)
-![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC)
-![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)
-![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64)
-![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11, 3.12, 3.13">
+  <img src="https://img.shields.io/badge/tests-pytest-0A9EDC" alt="Tested with pytest">
+  <img src="https://img.shields.io/badge/coverage-99%25-brightgreen" alt="Coverage 99%">
+  <img src="https://img.shields.io/badge/lint-ruff-D7FF64" alt="Linted with Ruff">
+  <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF" alt="CI on GitHub Actions">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
+</p>
 
-**A CLI tool to explore, call and test REST APIs — environments, requests, OpenAPI import and
-pytest generation in one command.**
+<p align="center">
+  <b>A CLI tool to explore, call and test REST APIs — environments, requests, OpenAPI import and
+  pytest generation in one command.</b>
+</p>
 
 ---
 
@@ -359,6 +365,7 @@ restpilot/
 │   ├── cli/                       every command through CliRunner
 │   └── conftest.py                isolated config home and fixtures
 ├── examples/
+├── assets/                        README banner
 ├── .github/workflows/ci.yml
 ├── pyproject.toml
 └── README.md
