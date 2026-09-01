@@ -32,6 +32,14 @@ def test_version_prints_the_package_version(runner):
     assert __version__ in result.stdout
 
 
+def test_version_flag_matches_the_subcommand(runner):
+    """`--version` is what people type; the subcommand stays for scripts."""
+    flag = runner.invoke(app, ["--version"])
+    assert flag.exit_code == 0
+    assert __version__ in flag.stdout
+    assert flag.stdout == runner.invoke(app, ["version"]).stdout
+
+
 def test_help_lists_every_command(runner):
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0

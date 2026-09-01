@@ -93,11 +93,30 @@ env_app = typer.Typer(help="Manage environments.", no_args_is_help=True)
 app.add_typer(env_app, name="env")
 
 
+def _print_version(value: bool) -> None:
+    """Answer ``--version`` during parsing, before any command is chosen.
+
+    Eager, so it works on its own: `restpilot --version` should not have to
+    satisfy whatever else the invocation would otherwise require.
+    """
+    if value:
+        console.print(f"restpilot {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
 def main(
     debug: bool = typer.Option(False, "--debug", help="Show full tracebacks on errors."),
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_print_version,
+        is_eager=True,
+        help="Show the RestPilot version and exit.",
+    ),
 ) -> None:
     """Configure global behaviour shared by every command."""
+    del version  # handled by the eager callback above
     state.debug = debug
 
 
