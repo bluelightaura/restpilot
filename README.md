@@ -1,20 +1,25 @@
-<p align="center">
-  <img src="assets/restpilot-banner.png" alt="RestPilot — a REST API client for the terminal" width="820">
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11, 3.12, 3.13">
-  <img src="https://img.shields.io/badge/tests-pytest-0A9EDC" alt="Tested with pytest">
-  <img src="https://img.shields.io/badge/coverage-99%25-brightgreen" alt="Coverage 99%">
-  <img src="https://img.shields.io/badge/lint-ruff-D7FF64" alt="Linted with Ruff">
-  <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF" alt="CI on GitHub Actions">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-</p>
+<img src="assets/restpilot-banner.png"
+     alt="RestPilot — explore, call and test REST APIs from the terminal"
+     width="880">
 
-<p align="center">
-  <b>A CLI tool to explore, call and test REST APIs — environments, requests, OpenAPI import and
-  pytest generation in one command.</b>
-</p>
+<br>
+
+**A CLI tool to explore, call and test REST APIs — environments, requests,<br>
+OpenAPI import and pytest generation in one command.**
+
+<br>
+
+<img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square" alt="Python 3.11, 3.12, 3.13">
+<img src="https://img.shields.io/badge/tests-pytest-0A9EDC?style=flat-square" alt="Tested with pytest">
+<img src="https://img.shields.io/badge/coverage-99%25-brightgreen?style=flat-square" alt="Coverage 99%">
+<img src="https://img.shields.io/badge/lint-ruff-D7FF64?style=flat-square" alt="Linted with Ruff">
+<img src="https://img.shields.io/badge/typing-mypy%20strict-1F5082?style=flat-square" alt="Checked with mypy strict">
+<img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square" alt="CI on GitHub Actions">
+<img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
+
+</div>
 
 ---
 
