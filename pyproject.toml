@@ -31,6 +31,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# `restpilot test` shells out to pytest; installing this extra makes the
+# generated suite runnable without a separate step.
+test = ["pytest>=8.2"]
 dev = [
     "pytest>=8.2",
     "pytest-cov>=5.0",

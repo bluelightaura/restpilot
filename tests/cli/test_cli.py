@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 from typing import Any
 
@@ -384,6 +385,21 @@ def test_test_command_accepts_an_explicit_path(runner, project_dir, monkeypatch)
     )
     result = runner.invoke(app, ["test", "--path", str(target)])
     assert result.exit_code == 0
+
+
+def test_test_command_reports_a_missing_pytest(runner, imported_spec, monkeypatch):
+    runner.invoke(app, ["generate-all"])
+    real_find_spec = importlib.util.find_spec
+
+    def fake_find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
+        return None if name == "pytest" else real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
+    result = runner.invoke(app, ["test"])
+
+    assert result.exit_code == 1
+    assert "pytest is not installed" in output_of(result)
+    assert "pipx inject restpilot pytest" in output_of(result)
 
 
 def test_coverage_reports_generated_tests(runner, imported_spec, project_dir):

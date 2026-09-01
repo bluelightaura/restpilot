@@ -8,6 +8,7 @@ short ``Error:`` line instead of a traceback unless ``--debug`` is passed.
 from __future__ import annotations
 
 import functools
+import importlib.util
 import subprocess
 import sys
 from collections.abc import Callable
@@ -528,6 +529,12 @@ def run_tests(
         raise ConfigurationError(
             f"{target} does not exist.",
             hint="Generate tests first: restpilot generate-all.",
+        )
+    if importlib.util.find_spec("pytest") is None:
+        raise ConfigurationError(
+            "pytest is not installed in the interpreter running RestPilot.",
+            hint="Install it alongside RestPilot: pipx inject restpilot pytest, "
+            "or pip install pytest.",
         )
     command = [sys.executable, "-m", "pytest", str(target)]
     if marker:

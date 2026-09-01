@@ -97,8 +97,19 @@ Failures are expressed as `RestPilotError` subclasses. The CLI turns them into a
 
 Requires Python 3.11 or newer.
 
+As a tool, in its own isolated environment:
+
 ```bash
-git clone https://github.com/<your-account>/restpilot.git
+pipx install 'restpilot[test] @ git+https://github.com/bluelightaura/restpilot.git'
+```
+
+The `test` extra pulls in pytest, which `restpilot test` shells out to. Without it every other
+command still works and `restpilot test` says what is missing.
+
+For development:
+
+```bash
+git clone https://github.com/bluelightaura/restpilot.git
 cd restpilot
 python -m venv .venv
 source .venv/bin/activate
