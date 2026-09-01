@@ -1,43 +1,22 @@
-<div align="center">
+# RestPilot
 
-<img src="assets/restpilot-banner.png"
-     alt="RestPilot — explore, call and test REST APIs from the terminal"
-     width="880">
+![RestPilot — calls and tests REST APIs](assets/restpilot-banner.png)
 
-<br>
+RestPilot is a command-line client for REST APIs you did not write. There is no
+GUI, no backend and no server of its own: configuration is YAML, the contract is
+an OpenAPI document, and the output is either a formatted response in the
+terminal or a runnable pytest suite on disk.
 
-**A CLI tool to explore, call and test REST APIs — environments, requests,<br>
-OpenAPI import and pytest generation in one command.**
+Testing someone else's API starts with the same hour of setup every time. The
+base URL lives in one place and the token in another, and both change per
+environment. `curl` invocations grow long and unreadable, and tokens end up in
+the shell history. The specification lists forty endpoints and nobody knows
+which of them are already covered. The first pytest suite is written by hand — a
+client fixture, a base URL, a header, one test per endpoint — before a single
+real assertion exists.
 
-<br>
-
-<img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square" alt="Python 3.11, 3.12, 3.13">
-<img src="https://img.shields.io/badge/tests-pytest-0A9EDC?style=flat-square" alt="Tested with pytest">
-<img src="https://img.shields.io/badge/coverage-99%25-brightgreen?style=flat-square" alt="Coverage 99%">
-<img src="https://img.shields.io/badge/lint-ruff-D7FF64?style=flat-square" alt="Linted with Ruff">
-<img src="https://img.shields.io/badge/typing-mypy%20strict-1F5082?style=flat-square" alt="Checked with mypy strict">
-<img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square" alt="CI on GitHub Actions">
-<img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
-
-</div>
-
----
-
-## The problem
-
-Testing someone else's REST API always starts with the same hour of setup:
-
-* the base URL lives in one place, the token in another, and both change per environment;
-* `curl` commands grow long and unreadable, and tokens end up in the shell history;
-* the OpenAPI document lists 40 endpoints, but nobody knows which ones are already covered;
-* the first pytest suite is written by hand — a client fixture, a base URL, a header, one test
-  per endpoint — before a single real assertion exists.
-
-None of that is interesting work, and all of it is repeated on every new project.
-
-## What RestPilot does
-
-RestPilot puts that hour into a handful of commands:
+None of that is interesting work, and all of it is repeated on every new
+project. RestPilot puts that hour into a handful of commands.
 
 ```bash
 restpilot import-api openapi.yaml                  # read the contract
@@ -49,34 +28,56 @@ restpilot generate-all                             # get a runnable pytest suite
 restpilot test                                     # run it
 ```
 
-It is a client for *other people's* APIs. It has no backend, no database and no server of its own.
+Credentials are never part of that. Headers hold `${RESTPILOT_TOKEN}`
+placeholders resolved from the process environment when the request is built,
+the configuration file is written with `0600` permissions, and sensitive header
+values are truncated in every line RestPilot prints.[^bodies]
 
-## Features
+[^bodies]: Masking covers headers. Response *bodies* are printed as received, so
+    an API that echoes your credentials back inside the payload will show them
+    on screen. See Boundaries and safety.
 
-* **Environments** — named targets (`local`, `stage`, …) with base URL, timeout, TLS verification
-  and default headers; a project-local file overrides the global one.
-* **No plaintext secrets** — headers use `${RESTPILOT_TOKEN}` placeholders resolved from the
-  environment at request time; the config file is written with `0600` permissions.
-* **Masked output** — `Authorization`, `Cookie`, `Set-Cookie` and `X-API-Key` are always truncated
-  in the terminal, including in `--verbose` mode.
-* **A predictable HTTP client** — query parameters, JSON or raw bodies, per-request timeout, and at
-  most two retries, only for `GET`/`HEAD`/`OPTIONS` and only on network errors or `502/503/504`.
-* **Readable responses** — status, duration and content type as a summary, JSON pretty-printed and
-  highlighted, and `--output` to save the raw body.
-* **OpenAPI 3.x import** — from a file or a URL, YAML or JSON, tolerant of unknown fields, with
-  local `$ref` resolution.
-* **pytest generation** — one readable module per endpoint, with the status code taken from the
-  specification, an example request body when the schema provides one, and a `conftest.py`
-  exposing an `api_client` fixture. Existing files are never overwritten without `--force`.
-* **Endpoint coverage** — `restpilot coverage` compares the specification with the tests you
-  already have and names the endpoints nobody has covered yet, with a `--fail-under` gate for CI.
-* **Exit codes that mean something** — `--expected-status` and `restpilot test` propagate failures,
-  so RestPilot can be used inside CI pipelines and shell scripts.
+## Five things it does
+
+### `env` — named targets
+
+An environment is a base URL, a timeout, a TLS setting and a set of default
+headers, stored under a name such as `local` or `stage`. A project-local
+`./.restpilot.yaml` overrides the global `~/.config/restpilot/config.yaml` per
+environment name, so a repository can pin its own targets without touching your
+home directory.
+
+### `call` — one request, readable output
+
+Query parameters, JSON or raw bodies, per-request timeout and header overrides.
+The response is printed as a summary — status, duration, content type — followed
+by the body, pretty-printed and highlighted when it is JSON. At most two retries
+are attempted, only for `GET`, `HEAD` and `OPTIONS`, and only on network errors
+or `502`, `503` and `504`.
+
+### `import-api` and `endpoints` — the contract
+
+OpenAPI 3.x, from a file or a URL, YAML or JSON, tolerant of unknown fields,
+with local `$ref` pointers resolved. The normalized form is stored once and then
+listed, filtered and searched without re-reading the source.
+
+### `generate-test`, `generate-all` and `test` — the suite
+
+One readable pytest module per endpoint, with the expected status taken from the
+specification and an example request body when the schema provides one. A
+`conftest.py` exposing an `api_client` fixture is written next to them on first
+generation. Existing files are never overwritten without `--force`.
+
+### `coverage` — specification versus the tests you already have
+
+The command compares the imported endpoints with the test files on disk and
+names the ones nobody has covered yet. It counts hand-written tests too, and
+`--fail-under` turns the report into a pipeline gate.
 
 ## Architecture
 
-The CLI is a thin layer: it parses arguments, delegates, and renders. Every rule lives in a package
-that can be imported and tested on its own.
+The CLI is a thin layer: it parses arguments, delegates, and renders. Every rule
+lives in a package that can be imported and tested on its own.
 
 ```text
 cli.py                    argument parsing, rendering, exit codes
@@ -90,21 +91,20 @@ cli.py                    argument parsing, rendering, exit codes
 └── utils/                secret masking and safe filesystem access
 ```
 
-Failures are expressed as `RestPilotError` subclasses. The CLI turns them into a one-line
-`Error:` message plus a hint — a traceback only appears with `--debug`.
+Failures are expressed as `RestPilotError` subclasses. The CLI turns them into a
+one-line `Error:` message plus a hint; a traceback appears only with `--debug`.
 
 ## Installation
 
-Requires Python 3.11 or newer.
-
-As a tool, in its own isolated environment:
+Requires Python 3.11 or newer. As a tool, in its own isolated environment:
 
 ```bash
 pipx install 'restpilot[test] @ git+https://github.com/bluelightaura/restpilot.git'
 ```
 
-The `test` extra pulls in pytest, which `restpilot test` shells out to. Without it every other
-command still works and `restpilot test` says what is missing.
+The `test` extra pulls in pytest, which `restpilot test` shells out to. Without
+it every other command still works and `restpilot test` says what is missing
+instead of failing obscurely.
 
 For development:
 
@@ -116,12 +116,7 @@ source .venv/bin/activate
 pip install -e '.[dev]'
 ```
 
-Check the installation:
-
-```bash
-restpilot --help
-restpilot version
-```
+Check the installation with `restpilot --help` and `restpilot version`.
 
 ## Quick start
 
@@ -148,9 +143,7 @@ restpilot test
 restpilot coverage --missing
 ```
 
-## Commands
-
-### Environments
+## Environments
 
 ```bash
 restpilot env create local --base-url http://localhost:8000
@@ -161,11 +154,12 @@ restpilot env show                # current environment, secrets masked
 restpilot env delete local
 ```
 
-Useful flags: `--header/-H` for default headers, `--force` to replace an existing entry,
-`--local` to write `./.restpilot.yaml` instead of the global file, `--no-verify` to disable TLS
-verification (off by default — verification stays on unless you ask for it).
+- `--header`, `-H` adds a default header, `Name=value`, repeatable.
+- `--force` replaces an existing entry instead of refusing.
+- `--local` writes `./.restpilot.yaml` instead of the global file.
+- `--no-verify` disables TLS verification, which is on unless you ask for it.
 
-### Requests
+## Requests
 
 ```bash
 restpilot call GET /health
@@ -179,20 +173,16 @@ restpilot call GET /api/v1/users/1 --output response.json
 restpilot call GET /health --verbose --timeout 5
 ```
 
-| Option | Meaning |
-| --- | --- |
-| `--header`, `-H` | Extra header, `Name=value`. Repeatable. |
-| `--query`, `-q` | Query parameter, `name=value`. Repeatable, duplicates preserved. |
-| `--json`, `-j` | JSON request body. |
-| `--data` | Raw request body (mutually exclusive with `--json`). |
-| `--timeout` | Override the environment timeout, in seconds. |
-| `--no-verify` | Disable TLS certificate verification for this call. |
-| `--verbose`, `-v` | Also print request and response headers, with secrets masked. |
-| `--output`, `-o` | Write the response body to a file. |
-| `--expected-status` | Exit with code 1 when the status differs. |
-| `--env` | Use another environment for this call only. |
-
-Output:
+- `--header`, `-H` — extra header, `Name=value`, repeatable.
+- `--query`, `-q` — query parameter, `name=value`, repeatable, duplicates kept.
+- `--json`, `-j` — JSON request body.
+- `--data` — raw request body, mutually exclusive with `--json`.
+- `--timeout` — override the environment timeout, in seconds.
+- `--no-verify` — disable TLS certificate verification for this call.
+- `--verbose`, `-v` — also print request and response headers, secrets masked.
+- `--output`, `-o` — write the response body to a file.
+- `--expected-status` — exit with code 1 when the status differs.
+- `--env` — use another environment for this call only.
 
 ```text
 Method:       GET
@@ -208,7 +198,7 @@ Content-Type: application/json
 }
 ```
 
-### OpenAPI
+## OpenAPI
 
 ```bash
 restpilot import-api examples/openapi.yaml
@@ -228,7 +218,7 @@ GET      /api/v1/users/{user_id}  Get user
 GET      /health                  Service health probe
 ```
 
-### Test generation
+## Test generation
 
 ```bash
 restpilot generate-test GET '/api/v1/users/{user_id}'
@@ -239,10 +229,10 @@ restpilot test --marker smoke
 restpilot test --path generated_tests
 ```
 
-`restpilot test` runs pytest through `subprocess` with an argument list (never `shell=True`) and
-returns pytest's own exit code.
+`restpilot test` runs pytest through `subprocess` with an argument list, never
+with `shell=True`, and returns pytest's own exit code.
 
-### Endpoint coverage
+## Endpoint coverage
 
 ```bash
 restpilot coverage
@@ -263,21 +253,19 @@ GET      /health                  covered  test_health_check.py
 2 of 5 endpoints covered (40%)
 ```
 
-A test counts as covering an endpoint when it carries the marker RestPilot writes into the module
-docstring — so renaming or editing a generated file keeps it recognized — or when it defines a
-test function named the way RestPilot would name it, which lets hand-written tests count too.
-`--fail-under` exits with code 1 below the given percentage, which makes the command usable as a
-contract-coverage gate in a pipeline.
+A test counts as covering an endpoint when it carries the marker RestPilot
+writes into the module docstring, so renaming or editing a generated file keeps
+it recognized, or when it defines a test function named the way RestPilot would
+name it, which lets hand-written tests count too. `--fail-under` exits with code
+1 below the given percentage.
 
 ## Configuration
 
-RestPilot reads two files:
-
-1. `~/.config/restpilot/config.yaml` — the global configuration;
-2. `./.restpilot.yaml` — a project file, looked up in the current directory and its parents.
-
-The local file wins per environment name, and its `current_environment` wins as well.
-`examples/restpilot.yaml` is a ready-to-copy template:
+RestPilot reads two files: `~/.config/restpilot/config.yaml` as the global
+configuration, and `./.restpilot.yaml` as a project file, looked up in the
+current directory and its parents. The local file wins per environment name, and
+its `current_environment` wins as well. `examples/restpilot.yaml` is a
+ready-to-copy template.
 
 ```yaml
 current_environment: local
@@ -297,21 +285,22 @@ environments:
     verify_ssl: true
 ```
 
-Every `${VAR}` placeholder is resolved from the process environment when a request is built. A
-missing variable is a clear error, not a request sent with a literal `${VAR}` header:
+Every `${VAR}` placeholder is resolved from the process environment when a
+request is built. A missing variable is a clear error, not a request sent with a
+literal `${VAR}` header.
 
 ```text
 Error: environment variable RESTPILOT_TOKEN is referenced by the configuration but not set.
 Export it before running the command, for example: export RESTPILOT_TOKEN=...
 ```
 
-`RESTPILOT_CONFIG_HOME` overrides the global configuration directory, which is what the test suite
-uses to stay out of your real home directory.
+`RESTPILOT_CONFIG_HOME` overrides the global configuration directory, which is
+what the test suite uses to stay out of your real home directory.
 
 ## Generated tests
 
-`restpilot generate-test GET '/api/v1/users/{user_id}'` writes `generated_tests/test_get_user.py`
-(see `examples/generated_test.py`):
+`restpilot generate-test GET '/api/v1/users/{user_id}'` writes
+`generated_tests/test_get_user.py`; see `examples/generated_test.py`.
 
 ```python
 """Generated by RestPilot for GET /api/v1/users/{user_id}.
@@ -335,13 +324,15 @@ def test_get_user(api_client: httpx.Client) -> None:
     assert isinstance(body, dict)
 ```
 
-The generator deliberately stays conservative: the expected status comes from the specification,
-the body assertion only checks the documented shape, and no dynamic value (ids, timestamps) is
-ever hard-coded into an assertion. The test name comes from `operationId` when the specification
-provides one, otherwise from the method and path.
+The generator deliberately stays conservative: the expected status comes from
+the specification, the body assertion only checks the documented shape, and no
+dynamic value such as an id or a timestamp is ever hard-coded into an assertion.
+The test name comes from `operationId` when the specification provides one,
+otherwise from the method and path.
 
-A `conftest.py` is created next to the tests on first generation and never overwritten. It reads
-its configuration from the environment, so the suite stays credential-free:
+A `conftest.py` is created next to the tests on first generation and never
+overwritten. It reads its configuration from the environment, so the suite stays
+credential-free.
 
 ```bash
 export RESTPILOT_BASE_URL="http://localhost:8000"
@@ -387,66 +378,66 @@ restpilot/
 └── README.md
 ```
 
-## Running the checks
+## Boundaries and safety
 
-```bash
-pytest                    # 258 tests, coverage gate at 90%
-ruff check .
-ruff format --check .
-mypy
-pre-commit install        # optional: run the same checks on every commit
-```
-
-The test suite never touches the real `~/.config/restpilot`: every test runs against a temporary
-configuration home. HTTP is mocked with `respx`, so no test needs a network connection.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs on every push and pull request, against Python 3.11, 3.12 and
-3.13: checkout, Python setup, dependency install, `ruff check`, `ruff format --check`, `mypy`,
-`pytest` with coverage, and upload of `coverage.xml` as a build artifact.
-
-## Roadmap
-
-Not implemented in the first version, in rough order of usefulness:
-
-* request history and replay;
-* request collections (saved, named requests);
-* variables carried between requests (`${response.id}`);
-* JSON Schema validation of responses against the OpenAPI document;
-* contract testing;
-* Postman collection import;
-* Allure reporting;
-* load scenarios;
-* a plugin system;
-* a Textual TUI.
+- Call only APIs you are authorized to call. RestPilot sends whatever you type,
+  including destructive methods, without a confirmation prompt.
+- Secrets are never stored in the repository or in the configuration: headers
+  reference `${RESTPILOT_TOKEN}`-style placeholders resolved from the process
+  environment at request time.
+- Configuration files are written atomically with `0600` permissions.
+- `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key`,
+  `Api-Key` and `X-Auth-Token` are masked in every terminal output, including
+  under `--verbose`.
+- Response bodies are printed as received. Masking covers headers, so an API
+  that echoes your credentials back in the payload — `httpbin.org/headers` does
+  exactly that — will show them on screen. Treat body output as untrusted
+  content.
+- `.env` is git-ignored, together with `.restpilot.yaml` and `generated_tests/`.
+- `restpilot test` executes pytest with an argument list and never with
+  `shell=True`.
+- Generated files are written through a path-traversal guard that refuses
+  absolute paths and `..`.
+- Every HTTP call has a finite timeout. Retries are capped at two and attempted
+  only for safe methods.
+- TLS verification is on by default; disabling it requires an explicit
+  `--no-verify`, per call or per environment.
 
 ## Limitations
 
-* OpenAPI 3.x only — Swagger 2.0 documents are rejected with a clear message.
-* Only local `$ref` pointers are resolved; remote references are left untouched.
-* Generated tests are scaffolding: they assert the status code and the documented body shape, not
-  business rules.
-* Only one specification is stored at a time per scope (project or global).
-* No request history, no collections and no chaining between requests yet.
-* Authentication is whatever you put in a header — there is no OAuth flow.
+- OpenAPI 3.x only. Swagger 2.0 documents are rejected with a clear message.
+- Only local `$ref` pointers are resolved; remote references are left untouched.
+- Generated tests are scaffolding. They assert the status code and the
+  documented body shape, not business rules.
+- Only one specification is stored at a time per scope, project or global.
+- No request history, no collections and no chaining between requests yet.
+- Authentication is whatever you put in a header; there is no OAuth flow.
 
-## Security
+## Roadmap
 
-* Secrets are never stored in the repository or in the configuration: headers reference
-  `${RESTPILOT_TOKEN}`-style placeholders resolved from the environment.
-* Configuration files are written atomically with `0600` permissions.
-* `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key`, `Api-Key` and
-  `X-Auth-Token` are masked in every terminal output, including `--verbose`.
-* Response **bodies** are printed as received: masking covers headers, so an API that echoes your
-  credentials back in the payload (`httpbin.org/headers` does exactly that) will show them on
-  screen. Treat body output as untrusted content.
-* `.env` is git-ignored, together with `.restpilot.yaml` and `generated_tests/`.
-* `restpilot test` executes pytest with an argument list and never with `shell=True`.
-* Generated files are written through a path-traversal guard that refuses absolute paths and `..`.
-* Every HTTP call has a finite timeout, retries are capped at two and only for safe methods.
-* TLS verification is on by default; disabling it requires an explicit `--no-verify`.
+Not implemented in the first version, in rough order of usefulness: request
+history and replay; request collections; variables carried between requests
+(`${response.id}`); JSON Schema validation of responses against the OpenAPI
+document; contract testing; Postman collection import; Allure reporting; load
+scenarios; a plugin system; a Textual TUI.
 
-## License
+## Checks
 
-[MIT](LICENSE).
+```bash
+pytest
+ruff check .
+ruff format --check .
+mypy
+pre-commit install
+```
+
+The suite is 259 tests behind a coverage gate of 90 per cent. It never touches
+the real `~/.config/restpilot`: every test runs against a temporary
+configuration home, and HTTP is mocked with `respx`, so no test needs a network
+connection.
+
+`.github/workflows/ci.yml` runs the same checks on every push and pull request
+against Python 3.11, 3.12 and 3.13, and uploads `coverage.xml` as a build
+artifact.
+
+Licensed under [MIT](LICENSE).
