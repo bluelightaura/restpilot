@@ -76,8 +76,8 @@ def test_sample_path_substitutes_placeholders(path, expected):
 
 
 def test_python_literal_uses_double_quotes_and_trailing_commas():
-    rendered = python_literal({"name": "Alice", "tags": ["a"], "active": True, "note": None})
-    assert '"name": "Alice",' in rendered
+    rendered = python_literal({"name": "Example User", "tags": ["a"], "active": True, "note": None})
+    assert '"name": "Example User",' in rendered
     assert "'" not in rendered
     assert rendered.endswith("}")
 
@@ -112,7 +112,7 @@ def test_render_test_includes_a_request_body_example(document):
     endpoint = endpoint_of(document, HttpMethod.POST, "/api/v1/users")
     generated = render_test(endpoint, smoke=True)
     assert "@pytest.mark.smoke" in generated.content
-    assert '"email": "alice@example.com",' in generated.content
+    assert '"email": "user@example.com",' in generated.content
     assert 'api_client.post("/api/v1/users", json=payload)' in generated.content
     assert "assert response.status_code == 201" in generated.content
 
@@ -133,7 +133,7 @@ def test_render_test_accepts_dicts_or_lists_for_undocumented_bodies():
 
 def test_render_test_ignores_a_body_example_for_safe_methods():
     endpoint = OpenAPIEndpoint(
-        method=HttpMethod.GET, path="/things", request_example={"name": "Alice"}
+        method=HttpMethod.GET, path="/things", request_example={"name": "Example User"}
     )
     assert "payload" not in render_test(endpoint).content
 

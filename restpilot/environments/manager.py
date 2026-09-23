@@ -42,8 +42,12 @@ class EnvironmentManager:
         except KeyError:
             raise EnvironmentNotFoundError(name, list(config.environments)) from None
 
-    def resolve(self, name: str | None = None) -> tuple[str, EnvironmentConfig]:
-        """Return the environment to use, with ``${VAR}`` headers expanded.
+    def resolve_raw(self, name: str | None = None) -> tuple[str, EnvironmentConfig]:
+        """Return the environment to use, with ``${VAR}`` headers left as written.
+
+        Expansion is what turns a placeholder into a credential, so commands that
+        only display configuration go through this method and never touch the
+        real value.
 
         Args:
             name: Explicit environment name. Defaults to the selected one.
@@ -69,6 +73,23 @@ class EnvironmentManager:
             environment = config.environments[selected]
         except KeyError:
             raise EnvironmentNotFoundError(selected, list(config.environments)) from None
+        return selected, environment
+
+    def resolve(self, name: str | None = None) -> tuple[str, EnvironmentConfig]:
+        """Return the environment to use, with ``${VAR}`` headers expanded.
+
+        Args:
+            name: Explicit environment name. Defaults to the selected one.
+
+        Returns:
+            A ``(name, environment)`` pair.
+
+        Raises:
+            ConfigurationError: If no environment is selected, the requested
+                environment is missing, or a referenced variable is not set.
+            EnvironmentNotFoundError: If the requested environment is missing.
+        """
+        selected, environment = self.resolve_raw(name)
         resolved = environment.model_copy(
             update={"headers": substitute_env_vars_in_mapping(environment.headers)}
         )

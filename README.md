@@ -166,7 +166,7 @@ restpilot call GET /health
 restpilot call GET /api/v1/users -q limit=10 -q offset=0 --expected-status 200
 restpilot call POST /api/v1/users \
   -H Content-Type=application/json \
-  -j '{"name":"Alice","email":"alice@example.com"}' \
+  -j '{"name":"Example User","email":"user@example.com"}' \
   --expected-status 201
 restpilot call DELETE /api/v1/users/1
 restpilot call GET /api/v1/users/1 --output response.json
@@ -193,8 +193,8 @@ Content-Type: application/json
 
 {
   "id": 1,
-  "name": "Alice",
-  "email": "alice@example.com"
+  "name": "Example User",
+  "email": "user@example.com"
 }
 ```
 
@@ -431,7 +431,7 @@ mypy
 pre-commit install
 ```
 
-The suite is 259 tests behind a coverage gate of 90 per cent. It never touches
+The suite is 263 tests behind a coverage gate of 90 per cent. It never touches
 the real `~/.config/restpilot`: every test runs against a temporary
 configuration home, and HTTP is mocked with `respx`, so no test needs a network
 connection.

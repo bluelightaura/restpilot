@@ -243,8 +243,13 @@ def find_endpoint(
 
 
 def save_document(path: Path, document: OpenAPIDocument) -> Path:
-    """Persist the normalized document as JSON."""
-    return write_text(path, document.model_dump_json(indent=2) + "\n")
+    """Persist the normalized document as JSON.
+
+    Written owner-only: a specification is not a credential, but its ``servers``
+    block routinely names internal hosts that have no reason to be world
+    readable.
+    """
+    return write_text(path, document.model_dump_json(indent=2) + "\n", private=True)
 
 
 def load_document(path: Path) -> OpenAPIDocument:

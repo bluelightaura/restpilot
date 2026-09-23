@@ -31,7 +31,7 @@ def make_result(**overrides: Any) -> ResponseResult:
         "status_code": 200,
         "reason_phrase": "OK",
         "headers": {"Content-Type": "application/json"},
-        "body": '{"id": 1, "name": "Alice"}',
+        "body": '{"id": 1, "name": "Example User"}',
         "elapsed_ms": 42.4,
     }
     return ResponseResult(**{**defaults, **overrides})
@@ -56,7 +56,7 @@ def test_summary_lists_the_request_facts():
 
 def test_json_body_is_pretty_printed():
     output = render(make_result())
-    assert '"name": "Alice"' in output
+    assert '"name": "Example User"' in output
 
 
 def test_verbose_output_masks_credentials():

@@ -218,13 +218,15 @@ def env_show(
         None, help="Environment to show. Defaults to the current one."
     ),
 ) -> None:
-    """Show the details of an environment, with secrets masked."""
+    """Show the details of an environment, with placeholders left unexpanded.
+
+    Named and unnamed forms print the same thing, and neither needs the
+    referenced variables to be set: this is the command people reach for when
+    they are working out why a variable did not arrive.
+    """
     paths = _paths()
     manager = EnvironmentManager(paths)
-    if name is None:
-        env_name, environment = manager.resolve()
-    else:
-        env_name, environment = name, manager.get(name)
+    env_name, environment = manager.resolve_raw(name)
     _print_environment(env_name, environment, paths)
 
 

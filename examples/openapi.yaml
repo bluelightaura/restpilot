@@ -109,17 +109,17 @@ components:
           example: 1
         name:
           type: string
-          example: Alice
+          example: Example User
         email:
           type: string
-          example: alice@example.com
+          example: user@example.com
     UserCreate:
       type: object
       required: [name, email]
       properties:
         name:
           type: string
-          example: Alice
+          example: Example User
         email:
           type: string
-          example: alice@example.com
+          example: user@example.com

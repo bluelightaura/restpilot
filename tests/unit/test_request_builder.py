@@ -88,12 +88,12 @@ def test_parse_query_preserves_repeated_keys():
 
 
 def test_parse_json_body_returns_python_objects():
-    assert parse_json_body('{"name": "Alice"}') == {"name": "Alice"}
+    assert parse_json_body('{"name": "Example User"}') == {"name": "Example User"}
 
 
 def test_parse_json_body_reports_invalid_payloads():
     with pytest.raises(ConfigurationError) as error:
-        parse_json_body("{name: Alice}")
+        parse_json_body("{name: Example User}")
     assert "not valid JSON" in error.value.message
 
 
@@ -121,13 +121,13 @@ def test_build_request_applies_cli_overrides(environment):
         "/users",
         headers={"Accept": "text/plain"},
         query=[("limit", "10")],
-        json_body={"name": "Alice"},
+        json_body={"name": "Example User"},
         timeout=3,
         verify_ssl=False,
     )
     assert request.headers == {"Accept": "text/plain"}
     assert request.query == [("limit", "10")]
-    assert request.json_body == {"name": "Alice"}
+    assert request.json_body == {"name": "Example User"}
     assert request.timeout == 3
     assert request.verify_ssl is False
     assert request.is_safe is False

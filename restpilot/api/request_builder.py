@@ -76,7 +76,7 @@ def parse_json_body(raw: str) -> Any:
     except json.JSONDecodeError as error:
         raise ConfigurationError(
             f"--json payload is not valid JSON: {error.msg} (line {error.lineno}).",
-            hint='Wrap the payload in single quotes: --json \'{"name": "Alice"}\'.',
+            hint='Wrap the payload in single quotes: --json \'{"name": "Example User"}\'.',
         ) from error
 
 

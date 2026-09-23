@@ -29,14 +29,14 @@ def client():
 @respx.mock
 def test_successful_get_returns_a_parsed_result(client, environment):
     route = respx.get(f"{BASE_URL}/users/1").mock(
-        return_value=httpx.Response(200, json={"id": 1, "name": "Alice"})
+        return_value=httpx.Response(200, json={"id": 1, "name": "Example User"})
     )
     result = client.execute(build_request(environment, HttpMethod.GET, "/users/1"))
 
     assert route.called
     assert result.status_code == 200
     assert result.method is HttpMethod.GET
-    assert result.json_body() == {"id": 1, "name": "Alice"}
+    assert result.json_body() == {"id": 1, "name": "Example User"}
     assert result.is_json
     assert result.attempts == 1
     assert result.elapsed_ms >= 0
@@ -46,12 +46,12 @@ def test_successful_get_returns_a_parsed_result(client, environment):
 def test_successful_post_sends_the_json_body(client, environment):
     route = respx.post(f"{BASE_URL}/users").mock(return_value=httpx.Response(201, json={"id": 3}))
     result = client.execute(
-        build_request(environment, HttpMethod.POST, "/users", json_body={"name": "Alice"})
+        build_request(environment, HttpMethod.POST, "/users", json_body={"name": "Example User"})
     )
 
     assert result.status_code == 201
     request = route.calls.last.request
-    assert request.content == b'{"name":"Alice"}'
+    assert request.content == b'{"name":"Example User"}'
     assert request.headers["content-type"] == "application/json"
 
 

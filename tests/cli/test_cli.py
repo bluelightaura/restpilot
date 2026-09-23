@@ -120,6 +120,34 @@ def test_env_show_accepts_an_explicit_name(runner):
     assert BASE_URL in result.stdout
 
 
+def test_env_show_never_expands_the_placeholder(runner, monkeypatch):
+    """Displaying configuration must not turn a placeholder into a credential."""
+    monkeypatch.setenv("RESTPILOT_TOKEN", "supersecrettoken")
+    create_local_environment(runner, "-H", "Authorization=Bearer ${RESTPILOT_TOKEN}")
+    result = runner.invoke(app, ["env", "show"])
+    assert result.exit_code == 0
+    assert "super" not in result.stdout
+    assert "${RES" in result.stdout
+
+
+def test_env_show_agrees_with_itself_named_or_not(runner, monkeypatch):
+    """`env show` and `env show <name>` describe the same environment."""
+    monkeypatch.setenv("RESTPILOT_TOKEN", "supersecrettoken")
+    create_local_environment(runner, "-H", "Authorization=Bearer ${RESTPILOT_TOKEN}")
+    assert runner.invoke(app, ["env", "show"]).stdout == (
+        runner.invoke(app, ["env", "show", "local"]).stdout
+    )
+
+
+def test_env_show_works_when_the_variable_is_unset(runner, monkeypatch):
+    """The command has to answer precisely when a variable did not arrive."""
+    monkeypatch.delenv("RESTPILOT_TOKEN", raising=False)
+    create_local_environment(runner, "-H", "Authorization=Bearer ${RESTPILOT_TOKEN}")
+    result = runner.invoke(app, ["env", "show"])
+    assert result.exit_code == 0
+    assert "${RES" in result.stdout
+
+
 def test_env_delete_removes_the_environment(runner):
     create_local_environment(runner)
     result = runner.invoke(app, ["env", "delete", "local"])
@@ -137,12 +165,12 @@ def test_env_delete_reports_an_unknown_environment(runner):
 def test_call_performs_a_get_request(runner):
     create_local_environment(runner)
     respx.get(f"{BASE_URL}/users/1").mock(
-        return_value=httpx.Response(200, json={"id": 1, "name": "Alice"})
+        return_value=httpx.Response(200, json={"id": 1, "name": "Example User"})
     )
     result = runner.invoke(app, ["call", "GET", "/users/1"])
     assert result.exit_code == 0, output_of(result)
     assert "200 OK" in result.stdout
-    assert '"name": "Alice"' in result.stdout
+    assert '"name": "Example User"' in result.stdout
 
 
 @respx.mock
@@ -170,13 +198,13 @@ def test_call_posts_a_json_body(runner):
             "-H",
             "Content-Type=application/json",
             "-j",
-            '{"name":"Alice"}',
+            '{"name":"Example User"}',
             "--expected-status",
             "201",
         ],
     )
     assert result.exit_code == 0, output_of(result)
-    assert route.calls.last.request.content == b'{"name":"Alice"}'
+    assert route.calls.last.request.content == b'{"name":"Example User"}'
 
 
 @respx.mock
@@ -217,7 +245,7 @@ def test_call_rejects_an_unsupported_method(runner):
 
 def test_call_rejects_an_invalid_json_payload(runner):
     create_local_environment(runner)
-    result = runner.invoke(app, ["call", "POST", "/users", "-j", "{name: Alice}"])
+    result = runner.invoke(app, ["call", "POST", "/users", "-j", "{name: Example User}"])
     assert result.exit_code == 1
     assert "not valid JSON" in output_of(result)
 

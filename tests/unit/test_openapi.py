@@ -50,7 +50,7 @@ def test_parse_spec_extracts_metadata_and_endpoints(document):
 def test_parse_spec_resolves_request_body_examples(document):
     endpoint = find_endpoint(document, HttpMethod.POST, "/api/v1/users")
     assert endpoint is not None
-    assert endpoint.request_example == {"name": "Alice", "email": "alice@example.com"}
+    assert endpoint.request_example == {"name": "Example User", "email": "user@example.com"}
     assert endpoint.success_status == 201
     assert endpoint.response_kind is ResponseKind.OBJECT
 
